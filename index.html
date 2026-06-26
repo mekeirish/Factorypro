@@ -23,7 +23,6 @@
             overflow: hidden;
         }
 
-        /* Console supérieure - Dégradé avec texture physique SVG réintégrée */
         .nav-bar {
             display: flex;
             justify-content: space-between;
@@ -145,6 +144,7 @@
             box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
         }
 
+        /* Overlay avec effet "embres" (grayscale + transparence) */
         .power-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -155,8 +155,11 @@
             background-position: center;
             background-repeat: no-repeat;
         }
+
         .power-overlay.cover-image {
             background-image: url('cover.png');
+            filter: grayscale(100%);
+            opacity: 0.25; /* 25% d'opacité = très transparent */
         }
 
         .hub-powered-on .power-overlay {
@@ -398,7 +401,6 @@
             box-shadow: 0 0 20px rgba(94,92,224,0.2);
         }
 
-        /* Bouton Cover spécifique */
         .cover-btn {
             background: linear-gradient(135deg, #2a2a3a, #1a1a2a);
             color: #aab;
@@ -495,30 +497,22 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4b6cb7">
     <link rel="apple-touch-icon" href="icon.png">
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4b6cb7">
-<link rel="apple-touch-icon" href="icon.png"></head>
+</head>
 <body>
 
     <!-- Barre de navigation dynamique -->
     <nav id="nav-bar" class="nav-bar">
-        <!-- Bouton Power toujours présent -->
         <div id="socket-power" class="btn-socket power-socket">
             <div class="led"></div>
             <button id="btn-power" class="pwa-btn power-btn">OFF</button>
         </div>
-        <!-- Les autres boutons seront générés ici -->
     </nav>
 
-    <!-- Zone Rendu Smartphone -->
     <main class="workspace">
         <div id="smartphone" class="phone-container">
             <div class="screen-glass"></div>
             <div class="power-overlay" id="power-overlay"></div>
-            <div id="content-area" class="content-area">
-                <!-- Les iframes seront générées dynamiquement -->
-            </div>
+            <div id="content-area" class="content-area"></div>
         </div>
     </main>
 
@@ -529,9 +523,7 @@
                 <h2>⚡ CONFIGURER</h2>
                 <button class="modal-close" id="modal-close-btn">&times;</button>
             </div>
-            <div id="modal-fields-container">
-                <!-- Généré dynamiquement -->
-            </div>
+            <div id="modal-fields-container"></div>
             <div class="add-section">
                 <div class="add-row">
                     <input type="text" id="add-name" placeholder="Nom" />
@@ -554,13 +546,11 @@
         let pwaList = [];
         let coverEnabled = false;
 
-        // Couleurs pour les LEDs (cycle)
         const ledColors = [
             '#ff453a', '#5e5ce0', '#0a84ff', '#ff375f', 
             '#32d74b', '#ffd60a', '#bf5af2', '#ff9f0a'
         ];
 
-        // Chargement initial
         function loadData() {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
@@ -584,13 +574,8 @@
                 saveData();
             }
 
-            // Charger l'état du Cover
             const coverStored = localStorage.getItem(COVER_KEY);
-            if (coverStored !== null) {
-                coverEnabled = coverStored === 'true';
-            } else {
-                coverEnabled = false;
-            }
+            coverEnabled = coverStored === 'true';
             updateCoverUI();
         }
 
@@ -602,7 +587,6 @@
             localStorage.setItem(COVER_KEY, String(coverEnabled));
         }
 
-        // ===== GÉNÉRATION DE L'UI =====
         function renderNav() {
             const nav = document.getElementById('nav-bar');
             const powerSocket = document.getElementById('socket-power');
@@ -657,29 +641,26 @@
             updateCoverUI();
         }
 
-        // ===== GESTION DU COVER =====
         function updateCoverUI() {
             const overlay = document.getElementById('power-overlay');
             const coverBtn = document.getElementById('cover-btn');
             if (coverEnabled) {
                 overlay.classList.add('cover-image');
-                if (coverBtn) coverBtn.textContent = 'Cover: ON';
-                if (coverBtn) coverBtn.classList.add('active');
-            } else {
-                overlay.classList.remove('cover-image');
-                if (coverBtn) coverBtn.textContent = 'Cover: OFF';
-                if (coverBtn) coverBtn.classList.remove('active');
-            }
-            // Si l'appareil est éteint, l'image s'affiche si coverEnabled
-            // On applique l'état immédiatement
-            if (!isPoweredOn) {
-                if (coverEnabled) {
-                    overlay.classList.add('cover-image');
-                } else {
-                    overlay.classList.remove('cover-image');
+                if (coverBtn) {
+                    coverBtn.textContent = 'Cover: ON';
+                    coverBtn.classList.add('active');
                 }
             } else {
-                // Quand allumé, on cache l'overlay donc peu importe
+                overlay.classList.remove('cover-image');
+                if (coverBtn) {
+                    coverBtn.textContent = 'Cover: OFF';
+                    coverBtn.classList.remove('active');
+                }
+            }
+            if (!isPoweredOn) {
+                if (coverEnabled) overlay.classList.add('cover-image');
+                else overlay.classList.remove('cover-image');
+            } else {
                 overlay.classList.remove('cover-image');
             }
         }
@@ -688,24 +669,18 @@
             coverEnabled = !coverEnabled;
             saveCoverState();
             updateCoverUI();
-            // Si l'appareil est éteint, on met à jour l'affichage
             if (!isPoweredOn) {
                 const overlay = document.getElementById('power-overlay');
-                if (coverEnabled) {
-                    overlay.classList.add('cover-image');
-                } else {
-                    overlay.classList.remove('cover-image');
-                }
+                if (coverEnabled) overlay.classList.add('cover-image');
+                else overlay.classList.remove('cover-image');
             }
         }
 
-        // ===== SWITCH TAB =====
         let activePwaId = null;
 
         function switchTab(id) {
             if (!isPoweredOn) return;
             if (activePwaId === id) return;
-
             playIndustrialHum();
 
             document.querySelectorAll('.pwa-btn:not(#btn-power)').forEach(btn => btn.classList.remove('active'));
@@ -726,7 +701,7 @@
             activePwaId = id;
         }
 
-        // ===== MODALE =====
+        // MODALE
         const modalOverlay = document.getElementById('link-modal');
         const modalFieldsContainer = document.getElementById('modal-fields-container');
         const closeModalBtn = document.getElementById('modal-close-btn');
@@ -787,12 +762,10 @@
 
                 modalFieldsContainer.appendChild(div);
             });
-            // Mettre à jour le bouton Cover dans la modale
             updateCoverUI();
             if (coverBtn) {
                 coverBtn.textContent = coverEnabled ? 'Cover: ON' : 'Cover: OFF';
-                if (coverEnabled) coverBtn.classList.add('active');
-                else coverBtn.classList.remove('active');
+                coverBtn.classList.toggle('active', coverEnabled);
             }
         }
 
@@ -860,7 +833,7 @@
             if (e.key === 'Enter') addUrlInput.focus();
         });
 
-        // ===== LONG PRESS POWER =====
+        // LONG PRESS POWER
         const powerBtn = document.getElementById('btn-power');
         let pressTimer = null;
         let isLongPress = false;
@@ -898,9 +871,8 @@
             }
         }, true);
 
-        // ===== POWER TOGGLE =====
+        // POWER TOGGLE
         let isPoweredOn = false;
-
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         function playIndustrialHum() {
@@ -939,7 +911,6 @@
                 powerBtn.classList.add('active');
                 socketPower.classList.add('active-power');
                 smartphone.classList.add('hub-powered-on');
-                // On cache l'overlay (même le cover)
                 overlay.classList.remove('cover-image');
                 if (!activePwaId && pwaList.length > 0) {
                     switchTab(pwaList[0].id);
@@ -961,12 +932,8 @@
                 powerBtn.classList.remove('active');
                 socketPower.classList.remove('active-power');
                 smartphone.classList.remove('hub-powered-on');
-                // On affiche l'overlay avec ou sans cover
-                if (coverEnabled) {
-                    overlay.classList.add('cover-image');
-                } else {
-                    overlay.classList.remove('cover-image');
-                }
+                if (coverEnabled) overlay.classList.add('cover-image');
+                else overlay.classList.remove('cover-image');
                 document.querySelectorAll('.pwa-btn:not(#btn-power)').forEach(btn => btn.classList.remove('active'));
                 document.querySelectorAll('.btn-socket:not(#socket-power)').forEach(socket => socket.classList.remove('active-pwa'));
                 document.querySelectorAll('.content-area iframe').forEach(iframe => iframe.classList.remove('active'));
@@ -974,7 +941,7 @@
             }
         }
 
-        // ===== HUB ROUTEUR POSTMESSAGE =====
+        // HUB ROUTEUR POSTMESSAGE
         window.addEventListener('message', (event) => {
             const msg = event.data;
             if (msg && msg.type === 'HUB_ROUTER' && msg.target) {
@@ -992,7 +959,7 @@
             }
         });
 
-        // ===== SERVICE WORKER CLEANUP =====
+        // SERVICE WORKER CLEANUP
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 for (let registration of registrations) {
@@ -1002,23 +969,17 @@
             });
         }
 
-        // ===== INIT =====
+        // INIT
         loadData();
         renderAll();
-        // Démarrer éteint
         isPoweredOn = false;
         powerBtn.textContent = 'OFF';
         powerBtn.classList.remove('active');
         document.getElementById('socket-power').classList.remove('active-power');
         document.getElementById('smartphone').classList.remove('hub-powered-on');
         const overlay = document.getElementById('power-overlay');
-        if (coverEnabled) {
-            overlay.classList.add('cover-image');
-        } else {
-            overlay.classList.remove('cover-image');
-        }
+        if (coverEnabled) overlay.classList.add('cover-image');
+        else overlay.classList.remove('cover-image');
     </script>
-
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
 </body>
 </html>
