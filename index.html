@@ -144,7 +144,7 @@
             box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
         }
 
-        /* Overlay avec effet "embres" (grayscale + transparence) */
+        /* ===== OVERLAY AMÉLIORÉ : EFFET "GRAVÉ" ===== */
         .power-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -157,9 +157,36 @@
         }
 
         .power-overlay.cover-image {
-            background-image: url('cover.png');
-            filter: grayscale(100%);
-            opacity: 0.25; /* 25% d'opacité = très transparent */
+            /* Image en niveaux de gris avec contraste renforcé */
+            filter: grayscale(100%) contrast(1.2) brightness(0.9);
+            opacity: 0.3;
+            
+            /* Texture de bruit SVG en superposition */
+            background-blend-mode: overlay;
+            background-image: 
+                url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.15"/></svg>'),
+                url('cover.png');
+            
+            /* Ombre interne pour la profondeur */
+            box-shadow: 
+                inset 0 8px 20px rgba(0,0,0,0.8),
+                inset 0 -4px 10px rgba(255,255,255,0.03);
+            
+            /* Bord biseauté */
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 4px;
+            
+            background-size: cover, cover;
+            background-position: center, center;
+        }
+
+        /* Lueur néon centrale (facultative) */
+        .power-overlay.cover-image::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, rgba(94,92,224,0.05) 0%, transparent 70%);
+            pointer-events: none;
         }
 
         .hub-powered-on .power-overlay {
